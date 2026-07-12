@@ -1,0 +1,6 @@
+{
+  "name": "En mémoire d'Alcide Emmanuel",
+  "description": "Virtual digital memorial album and collaborative memory book dedicated to preserving and celebrating the life of Alcide Emmanuel (Manley). Supports French and Haitian Creole.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

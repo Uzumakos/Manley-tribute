@@ -1,0 +1,124 @@
+{
+  "memorial": {
+    "id": "manley-memorial",
+    "fullName": "Alcide Emmanuel",
+    "nickname": "Manley",
+    "birthDate": "1994-06-26",
+    "importantDate": "26 Juin",
+    "biography": "Alcide Emmanuel, affectueusement connu par tous sous le nom de « Manley », était une âme d'une générosité sans borne, un ingénieur passionné, et un musicien talentueux. Né le 26 juin, il a consacré sa vie à créer des ponts entre les personnes, à partager son amour pour la culture haïtienne, et à inspirer ses proches par son humilité et sa soif insatiable de savoir.\n\nQue ce soit à travers les mélodies qu'il jouait à la guitare ou les lignes de code élégantes qu'il écrivait pour résoudre des problèmes complexes, Manley mettait son cœur entier dans chaque création. Son sourire contagieux, sa bienveillance et sa sagesse continuent d'éclairer le chemin de tous ceux qui ont eu le privilège de croiser sa route. Ce mémorial est un espace vivant pour célébrer sa lumière, préserver ses mots, et lui dire merci pour chaque instant partagé.",
+    "coverImage": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=1200",
+    "profileImage": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400",
+    "createdAt": "2026-07-11T22:00:00Z"
+  },
+  "testimonials": [
+    {
+      "id": "t1",
+      "memorialId": "manley-memorial",
+      "authorName": "Chantal Desrosiers",
+      "nickname": "Tati Chantal",
+      "relationship": "family",
+      "language": "fr",
+      "message": "Manley était une personne extraordinaire. Son sourire chaleureux restera à jamais gravé dans nos mémoires. Il portait en lui une joie de vivre qui illuminait chaque réunion de famille. Repose en paix, mon cher neveu.",
+      "photoUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=300",
+      "status": "approved",
+      "isAnonymous": false,
+      "createdAt": "2026-07-01T10:30:00Z"
+    },
+    {
+      "id": "t2",
+      "memorialId": "manley-memorial",
+      "authorName": "Jean-Pierre Bastien",
+      "nickname": "JP",
+      "relationship": "friend",
+      "language": "ht",
+      "message": "Manley se te yon moun espesyal anpil. Souri li ap toujou rete nan kè nou. Nou te konn pase anpil nwit ap diskite sou pwojè teknoloji, li te toujou prè pou l ede san l pa mande anyen an retou. Yon vrè frè.",
+      "photoUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=300",
+      "status": "approved",
+      "isAnonymous": false,
+      "createdAt": "2026-07-02T14:45:00Z"
+    },
+    {
+      "id": "t3",
+      "memorialId": "manley-memorial",
+      "authorName": "Naomie Pierre",
+      "nickname": "",
+      "relationship": "colleague",
+      "language": "fr",
+      "message": "Un professionnel exceptionnel et un esprit brillant. Travailler avec Manley était un honneur. Sa rigueur, sa créativité et surtout son humilité exemplaire ont profondément marqué notre équipe technique. Son héritage se perpétue dans nos réalisations.",
+      "status": "approved",
+      "isAnonymous": false,
+      "createdAt": "2026-07-03T09:15:00Z"
+    },
+    {
+      "id": "t4",
+      "memorialId": "manley-memorial",
+      "authorName": "Makenzy Jean",
+      "nickname": "Kenzy",
+      "relationship": "friend",
+      "language": "ht",
+      "message": "Manley te renmen mizik ak tout kè l. M p ap janm bliye lè n te konn ap jwe gita ansanm nan lakou a. Li te konn rann chak moman senp tounen yon bèl melodi. Limyè w pap janm mouri, frè m.",
+      "photoUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=300",
+      "status": "approved",
+      "isAnonymous": false,
+      "createdAt": "2026-07-04T18:20:00Z"
+    }
+  ],
+  "photos": [
+    {
+      "id": "p1",
+      "memorialId": "manley-memorial",
+      "category": "Childhood",
+      "imageUrl": "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=800",
+      "caption": "Premiers sourires, déjà plein de curiosité pour le monde.",
+      "uploadedBy": "Famille Emmanuel",
+      "createdAt": "2026-07-01T08:00:00Z"
+    },
+    {
+      "id": "p2",
+      "memorialId": "manley-memorial",
+      "category": "Family",
+      "imageUrl": "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800",
+      "caption": "Une fête de famille mémorable où Manley jouait de la guitare.",
+      "uploadedBy": "Chantal Desrosiers",
+      "createdAt": "2026-07-02T11:30:00Z"
+    },
+    {
+      "id": "p3",
+      "memorialId": "manley-memorial",
+      "category": "Friends",
+      "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=800",
+      "caption": "Soirée de rires et de partage avec l'équipe de développement.",
+      "uploadedBy": "Jean-Pierre Bastien",
+      "createdAt": "2026-07-03T16:40:00Z"
+    },
+    {
+      "id": "p4",
+      "memorialId": "manley-memorial",
+      "category": "Important Moments",
+      "imageUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800",
+      "caption": "La consécration de ses travaux d'ingénierie.",
+      "uploadedBy": "Naomie Pierre",
+      "createdAt": "2026-07-04T12:00:00Z"
+    },
+    {
+      "id": "p5",
+      "memorialId": "manley-memorial",
+      "category": "Memories",
+      "imageUrl": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800",
+      "caption": "Manley contemplant le coucher de soleil au bord de la mer en Haïti.",
+      "uploadedBy": "Makenzy Jean",
+      "createdAt": "2026-07-05T19:10:00Z"
+    }
+  ],
+  "tributeVideo": {
+    "id": "v1",
+    "memorialId": "manley-memorial",
+    "title": "Alcide Emmanuel (Manley) - Une Vie de Lumière",
+    "musicUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "status": "published",
+    "selectedPhotos": ["p1", "p2", "p3", "p4", "p5"],
+    "selectedTestimonials": ["t1", "t2", "t4"],
+    "slideDuration": 6,
+    "createdAt": "2026-07-10T15:00:00Z"
+  }
+}
