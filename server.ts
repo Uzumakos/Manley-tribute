@@ -79,17 +79,14 @@ async function writeDB(data: any) {
   }
 }
 
-async function startServer() {
-  await ensureDirectories();
+// Parse JSON bodies (increased limit to support base64 image uploads)
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ limit: '20mb', extended: true }));
 
-  // Parse JSON bodies (increased limit to support base64 image uploads)
-  app.use(express.json({ limit: '20mb' }));
-  app.use(express.urlencoded({ limit: '20mb', extended: true }));
+// Serve uploads statically
+app.use('/uploads', express.static(UPLOADS_DIR));
 
-  // Serve uploads statically
-  app.use('/uploads', express.static(UPLOADS_DIR));
-
-  // --- API Routes ---
+// --- API Routes ---
 
   // Verify Admin Password
   app.post('/api/admin/verify', (req, res) => {
@@ -738,23 +735,29 @@ async function startServer() {
   });
 
   // --- Vite Dev Server Middleware or Production Static Serving ---
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+  if (process.env.VERCEL !== '1') {
+    ensureDirectories().then(() => {
+      if (process.env.NODE_ENV !== 'production') {
+        createViteServer({
+          server: { middlewareMode: true },
+          appType: 'spa',
+        }).then((vite) => {
+          app.use(vite.middlewares);
+          app.listen(PORT, '0.0.0.0', () => {
+            console.log(`[Memorial Backend] Server listening at http://0.0.0.0:${PORT}`);
+          });
+        });
+      } else {
+        const distPath = path.join(process.cwd(), 'dist');
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(distPath, 'index.html'));
+        });
+        app.listen(PORT, '0.0.0.0', () => {
+          console.log(`[Memorial Backend] Server listening at http://0.0.0.0:${PORT}`);
+        });
+      }
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Memorial Backend] Server listening at http://0.0.0.0:${PORT}`);
-  });
-}
-
-startServer();
+  export default app;
