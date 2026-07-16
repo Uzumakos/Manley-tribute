@@ -17,8 +17,8 @@ export default function MusicPlayer({ tracks, lang }: MusicPlayerProps) {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(50);
-  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(70);
+  const [isMuted, setIsMuted] = useState(true); // start muted so browser allows autoplay
   const [isRepeat, setIsRepeat] = useState(true);
 
   const activeTrack = tracks[currentTrackIndex];
@@ -74,6 +74,7 @@ export default function MusicPlayer({ tracks, lang }: MusicPlayerProps) {
       videoId: videoId,
       playerVars: {
         autoplay: 1,
+        mute: 1,      // required for browser autoplay policy
         controls: 0,
         disablekb: 1,
         fs: 0,
@@ -82,8 +83,9 @@ export default function MusicPlayer({ tracks, lang }: MusicPlayerProps) {
       },
       events: {
         onReady: (event: any) => {
+          event.target.mute();          // ensure muted for autoplay
           event.target.setVolume(volume);
-          event.target.playVideo();
+          event.target.playVideo();     // will succeed because muted
         },
         onStateChange: (event: any) => {
           // YT.PlayerState: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
@@ -194,6 +196,7 @@ export default function MusicPlayer({ tracks, lang }: MusicPlayerProps) {
     if (!playerRef.current) return;
     if (isMuted) {
       playerRef.current.unMute();
+      playerRef.current.setVolume(volume);
       setIsMuted(false);
     } else {
       playerRef.current.mute();
@@ -228,33 +231,55 @@ export default function MusicPlayer({ tracks, lang }: MusicPlayerProps) {
         
         {/* COLLAPSED CAPSULE */}
         {!isExpanded && (
-          <button 
-            onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-3.5 bg-slate-950/90 hover:bg-slate-900 border border-gold/25 hover:border-gold/50 shadow-2xl rounded-full py-2.5 px-4.5 text-ivory text-left transition select-none cursor-pointer group"
-          >
-            {/* Spinning track art */}
-            <div className={`w-8 h-8 rounded-full overflow-hidden border border-gold/30 shrink-0 bg-slate-800 relative flex items-center justify-center`}>
-              <img 
-                src={activeThumbnail} 
-                alt="" 
-                className={`w-full h-full object-cover transition-transform ${isPlaying ? 'animate-spin' : ''}`}
-                style={{ animationDuration: '20s', animationTimingFunction: 'linear', animationIterationCount: 'infinite' }}
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-black/10 rounded-full" />
-            </div>
+          <div className="flex items-center gap-2">
+            {/* Mute/Unmute quick button — visible when muted so user knows music is playing */}
+            {isMuted && isPlaying && (
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                className="flex items-center gap-1.5 bg-gold text-midnight text-[10px] font-bold px-3 py-2 rounded-full shadow-lg hover:bg-gold/90 transition animate-pulse"
+                title={lang === 'fr' ? 'Activer le son' : 'Aktive son an'}
+              >
+                <VolumeX className="w-3.5 h-3.5" />
+                <span className="uppercase tracking-wider">{lang === 'fr' ? 'Son' : 'Son'}</span>
+              </button>
+            )}
 
-            <div className="min-w-[120px] max-w-[180px]">
-              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">
-                YOUTUBE • {isPlaying ? (lang === 'fr' ? 'EN LECTURE' : 'AP JWE') : (lang === 'fr' ? 'EN PAUSE' : 'EN PAZ')}
-              </p>
-              <p className="text-xs font-serif font-semibold text-ivory truncate mt-0.5 group-hover:text-gold transition">
-                {activeTrack.title}
-              </p>
-            </div>
+            <button 
+              onClick={() => setIsExpanded(true)}
+              className="flex items-center gap-3.5 bg-slate-950/90 hover:bg-slate-900 border border-gold/25 hover:border-gold/50 shadow-2xl rounded-full py-2.5 px-4.5 text-ivory text-left transition select-none cursor-pointer group"
+            >
+              {/* Spinning track art — glows gold when muted to hint at interaction */}
+              <div className={`w-8 h-8 rounded-full overflow-hidden shrink-0 bg-slate-800 relative flex items-center justify-center ${
+                isMuted && isPlaying
+                  ? 'border-2 border-gold ring-2 ring-gold/30 ring-offset-1 ring-offset-slate-950'
+                  : 'border border-gold/30'
+              }`}>
+                <img 
+                  src={activeThumbnail} 
+                  alt="" 
+                  className={`w-full h-full object-cover transition-transform ${isPlaying ? 'animate-spin' : ''}`}
+                  style={{ animationDuration: '20s', animationTimingFunction: 'linear', animationIterationCount: 'infinite' }}
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-black/10 rounded-full" />
+              </div>
 
-            <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-gold shrink-0 transition" />
-          </button>
+              <div className="min-w-[120px] max-w-[180px]">
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">
+                  YOUTUBE • {isPlaying
+                    ? isMuted
+                      ? (lang === 'fr' ? 'MUET' : 'SAN SON')
+                      : (lang === 'fr' ? 'EN LECTURE' : 'AP JWE')
+                    : (lang === 'fr' ? 'EN PAUSE' : 'EN PAZ')}
+                </p>
+                <p className="text-xs font-serif font-semibold text-ivory truncate mt-0.5 group-hover:text-gold transition">
+                  {activeTrack.title}
+                </p>
+              </div>
+
+              <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-gold shrink-0 transition" />
+            </button>
+          </div>
         )}
 
         {/* EXPANDED DETAILED CARD */}

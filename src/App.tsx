@@ -446,10 +446,10 @@ export default function App() {
                 key={item.tab}
                 onClick={() => { setActiveTab(item.tab as any); setMobileMenuOpen(false); }}
                 className={`w-full text-left py-2.5 px-3 rounded-xl text-sm font-medium tracking-wide uppercase flex items-center gap-2 ${item.highlight
-                    ? 'text-gold border border-gold/30 bg-gold/5'
-                    : activeTab === item.tab
-                      ? 'text-gold bg-gold/5 font-semibold'
-                      : 'text-slate-600'
+                  ? 'text-gold border border-gold/30 bg-gold/5'
+                  : activeTab === item.tab
+                    ? 'text-gold bg-gold/5 font-semibold'
+                    : 'text-slate-600'
                   }`}
               >
                 {item.icon && React.createElement(item.icon, { className: "w-4 h-4" })}
@@ -497,7 +497,7 @@ export default function App() {
                       " {memorial?.nickname} "
                     </p>
                     <p className="text-sage text-sm md:text-base font-light tracking-wide pt-2">
-                      {lang === 'fr' ? "26 Juin 1995 — À jamais dans notre mémoire collective" : "26 Jen 1994 — Pou tout tan nan kè nou"}
+                      {lang === 'fr' ? "26 Juin 1995 — À jamais dans notre mémoire collective" : "26 Jen 1995 — Pou tout tan nan kè nou"}
                     </p>
 
                     <div className="flex flex-wrap gap-4 pt-6">
@@ -764,21 +764,19 @@ export default function App() {
                   <div className="bg-slate-100 rounded-lg p-0.5 flex items-center border border-slate-200 shadow-sm">
                     <button
                       onClick={() => setTestimonialSort('recent')}
-                      className={`px-3 py-1 text-[11px] font-semibold rounded-md transition ${
-                        testimonialSort === 'recent'
+                      className={`px-3 py-1 text-[11px] font-semibold rounded-md transition ${testimonialSort === 'recent'
                           ? 'bg-white text-midnight shadow-sm'
                           : 'text-slate-500 hover:text-midnight'
-                      }`}
+                        }`}
                     >
                       {t.sortRecent}
                     </button>
                     <button
                       onClick={() => setTestimonialSort('likes')}
-                      className={`px-3 py-1 text-[11px] font-semibold rounded-md transition flex items-center gap-1 ${
-                        testimonialSort === 'likes'
+                      className={`px-3 py-1 text-[11px] font-semibold rounded-md transition flex items-center gap-1 ${testimonialSort === 'likes'
                           ? 'bg-white text-midnight shadow-sm'
                           : 'text-slate-500 hover:text-midnight'
-                      }`}
+                        }`}
                     >
                       <Heart className="w-3 h-3 text-rose-500 fill-current" />
                       {t.sortMostLiked}
@@ -858,8 +856,8 @@ export default function App() {
                     key={cat.id}
                     onClick={() => setSelectedGalleryCategory(cat.id)}
                     className={`px-4 py-1.5 rounded-full text-xs transition uppercase tracking-wider font-medium ${selectedGalleryCategory === cat.id
-                        ? 'bg-midnight text-ivory shadow-sm'
-                        : 'bg-white hover:bg-slate-50 border border-slate-200 text-slate-600'
+                      ? 'bg-midnight text-ivory shadow-sm'
+                      : 'bg-white hover:bg-slate-50 border border-slate-200 text-slate-600'
                       }`}
                   >
                     {cat.label}
@@ -933,8 +931,8 @@ export default function App() {
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => handleFileDrop(e, 'gallery')}
                         className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${galleryPhotoPreview
-                            ? 'border-gold/40 bg-gold/5'
-                            : 'border-gold/20 hover:border-gold/40 hover:bg-slate-50'
+                          ? 'border-gold/40 bg-gold/5'
+                          : 'border-gold/20 hover:border-gold/40 hover:bg-slate-50'
                           }`}
                         onClick={() => document.getElementById('gallery-file-pick')?.click()}
                       >
@@ -1226,8 +1224,8 @@ export default function App() {
                           onDrop={(e) => handleFileDrop(e, 'form')}
                           onClick={() => document.getElementById('form-file-pick')?.click()}
                           className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition ${formPhotoPreview
-                              ? 'border-gold bg-gold/5'
-                              : 'border-gold/20 hover:border-gold/40 hover:bg-slate-50'
+                            ? 'border-gold bg-gold/5'
+                            : 'border-gold/20 hover:border-gold/40 hover:bg-slate-50'
                             }`}
                         >
                           {formPhotoPreview ? (
