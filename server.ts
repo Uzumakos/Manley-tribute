@@ -7,7 +7,6 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
-import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
@@ -738,13 +737,15 @@ app.use('/uploads', express.static(UPLOADS_DIR));
   if (process.env.VERCEL !== '1') {
     ensureDirectories().then(() => {
       if (process.env.NODE_ENV !== 'production') {
-        createViteServer({
-          server: { middlewareMode: true },
-          appType: 'spa',
-        }).then((vite) => {
-          app.use(vite.middlewares);
-          app.listen(PORT, '0.0.0.0', () => {
-            console.log(`[Memorial Backend] Server listening at http://0.0.0.0:${PORT}`);
+        import('vite').then(({ createServer }) => {
+          createServer({
+            server: { middlewareMode: true },
+            appType: 'spa',
+          }).then((vite) => {
+            app.use(vite.middlewares);
+            app.listen(PORT, '0.0.0.0', () => {
+              console.log(`[Memorial Backend] Server listening at http://0.0.0.0:${PORT}`);
+            });
           });
         });
       } else {
