@@ -7,18 +7,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, Pause, RotateCcw, Volume2, VolumeX, SkipForward, Music, Sparkles, 
-  Download, X, Film, Image as ImageIcon, FileText 
+  Download, X, Film, Image as ImageIcon, FileText, Lock, Shield, Check
 } from 'lucide-react';
-import { Photo, Testimonial, TributeVideoConfig } from '../types';
+import { Photo, Testimonial, TributeVideoConfig, AudioTrack } from '../types';
 
 interface TributePlayerProps {
   config: TributeVideoConfig | null;
   photos: Photo[];
   testimonials: Testimonial[];
   lang: 'fr' | 'ht';
+  audioTracks?: AudioTrack[];
 }
 
-export default function TributePlayer({ config, photos, testimonials, lang }: TributePlayerProps) {
+export default function TributePlayer({ config, photos, testimonials, lang, audioTracks = [] }: TributePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0); // 0 = Opening, then slides, then Closing
   const [isMuted, setIsMuted] = useState(false);
@@ -27,10 +28,119 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [selectedMusicUrl, setSelectedMusicUrl] = useState(config?.musicUrl || '');
+  const ytPlayerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (config?.musicUrl) {
+      setSelectedMusicUrl(config.musicUrl);
+    }
+  }, [config?.musicUrl]);
+
+  // Helper to extract YouTube video ID
+  const getYouTubeId = (url: string): string | null => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url?.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  // Helper to resolve a YouTube URL to its corresponding MP3 audio link if available in the playlist
+  const getPlayableAudioUrl = (url: string): string => {
+    if (!url) return '';
+    const track = audioTracks.find(t => t.youtubeUrl === url || t.audioUrl === url);
+    if (track && track.audioUrl) {
+      return track.audioUrl;
+    }
+    return url;
+  };
+
   // Dynamic Video Recording States
   const [videoRecordingState, setVideoRecordingState] = useState<'idle' | 'loading' | 'recording' | 'saving' | 'done' | 'error'>('idle');
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoStatusText, setVideoStatusText] = useState('');
+
+  // Permission Request States
+  const [photosPermission, setPhotosPermission] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+  const [pdfPermission, setPdfPermission] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+  const [photosReqId, setPhotosReqId] = useState<string | null>(null);
+  const [pdfReqId, setPdfReqId] = useState<string | null>(null);
+
+  const [requestModalType, setRequestModalType] = useState<'photos' | 'pdf' | null>(null);
+  const [requesterName, setRequesterName] = useState('');
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
+  // Load and check request status
+  const checkRequestStatuses = async () => {
+    const pId = localStorage.getItem('memorial_req_photos_id');
+    const pdfId = localStorage.getItem('memorial_req_pdf_id');
+    setPhotosReqId(pId);
+    setPdfReqId(pdfId);
+
+    const idsToCheck = [pId, pdfId].filter(Boolean) as string[];
+    if (idsToCheck.length === 0) return;
+
+    try {
+      const res = await fetch(`/api/download-requests/status?ids=${idsToCheck.join(',')}`);
+      if (res.ok) {
+        const statuses = await res.json() as Record<string, string>;
+        if (pId && statuses[pId]) {
+          setPhotosPermission(statuses[pId] as any);
+        }
+        if (pdfId && statuses[pdfId]) {
+          setPdfPermission(statuses[pdfId] as any);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to check request statuses:", e);
+    }
+  };
+
+  useEffect(() => {
+    checkRequestStatuses();
+    const interval = setInterval(checkRequestStatuses, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (showDownloadModal) {
+      checkRequestStatuses();
+    }
+  }, [showDownloadModal]);
+
+  const handleRequestPermission = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requesterName || !requestModalType) return;
+
+    setIsSubmittingRequest(true);
+    try {
+      const res = await fetch('/api/download-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: requesterName, type: requestModalType })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem(`memorial_req_${requestModalType}_id`, data.id);
+        if (requestModalType === 'photos') {
+          setPhotosReqId(data.id);
+          setPhotosPermission('pending');
+        } else {
+          setPdfReqId(data.id);
+          setPdfPermission('pending');
+        }
+        setRequestModalType(null);
+        setRequesterName('');
+      } else {
+        alert("Failed to submit request. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error. Please try again.");
+    } finally {
+      setIsSubmittingRequest(false);
+    }
+  };
 
   // Filter and arrange slides based on configuration
   const slidePhotos = config?.selectedPhotos
@@ -326,30 +436,43 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
       let audioCtx: AudioContext | null = null;
       let muteGain: GainNode | null = null;
 
-      if (config?.musicUrl) {
+      const playableUrl = getPlayableAudioUrl(selectedMusicUrl);
+      if (playableUrl) {
         try {
-          setVideoStatusText(lang === 'fr' ? "Préparation de la mélodie d'ambiance..." : "Ap prepare mizik la...");
-          audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          recAudio = new Audio(config.musicUrl);
-          recAudio.crossOrigin = 'anonymous';
-          recAudio.volume = 0.45;
-          recAudio.loop = true; // Loop so it never terminates the audio stream early
+          if (isYouTubeUrl(playableUrl)) {
+            // Warn that YouTube audio stream is CORS-blocked and cannot be compiled into standard browser video file
+            console.warn("YouTube audio cannot be captured in browser WebM compilation due to CORS restrictions.");
+            setVideoStatusText(
+              lang === 'fr'
+                ? "Note: Audio YouTube muet dans le fichier téléchargé (sécurité)."
+                : "Remak: Audio YouTube an silans nan videyo a pou sekirite."
+            );
+            // Quick 2.5 second sleep so the user can read the notice
+            await new Promise(resolve => setTimeout(resolve, 2500));
+          } else {
+            setVideoStatusText(lang === 'fr' ? "Préparation de la mélodie d'ambiance..." : "Ap prepare mizik la...");
+            audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            recAudio = new Audio(playableUrl);
+            recAudio.crossOrigin = 'anonymous';
+            recAudio.volume = 0.45;
+            recAudio.loop = true; // Loop so it never terminates the audio stream early
 
-          mediaStreamDestination = audioCtx.createMediaStreamDestination();
-          recorderAudioSource = audioCtx.createMediaElementSource(recAudio);
-          recorderAudioSource.connect(mediaStreamDestination);
+            mediaStreamDestination = audioCtx.createMediaStreamDestination();
+            recorderAudioSource = audioCtx.createMediaElementSource(recAudio);
+            recorderAudioSource.connect(mediaStreamDestination);
 
-          // Workaround for Chrome/WebKit bug: if MediaElementAudioSourceNode is not connected 
-          // to an active physical speakers destination (even muted), the browser halts/suspends
-          // the decoding process after 9-10 seconds of buffering, causing recording truncation.
-          muteGain = audioCtx.createGain();
-          muteGain.gain.value = 0.0;
-          recorderAudioSource.connect(muteGain);
-          muteGain.connect(audioCtx.destination);
+            // Workaround for Chrome/WebKit bug: if MediaElementAudioSourceNode is not connected 
+            // to an active physical speakers destination (even muted), the browser halts/suspends
+            // the decoding process after 9-10 seconds of buffering, causing recording truncation.
+            muteGain = audioCtx.createGain();
+            muteGain.gain.value = 0.0;
+            recorderAudioSource.connect(muteGain);
+            muteGain.connect(audioCtx.destination);
 
-          const audioTracks = mediaStreamDestination.stream.getAudioTracks();
-          if (audioTracks.length > 0) {
-            tracks.push(audioTracks[0]);
+            const audioTracks = mediaStreamDestination.stream.getAudioTracks();
+            if (audioTracks.length > 0) {
+              tracks.push(audioTracks[0]);
+            }
           }
         } catch (audioErr) {
           console.warn("Audio node extraction failed. Proceeding with silent video compilation.", audioErr);
@@ -374,6 +497,8 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
       // If we don't hold active, long-lived references to these nodes, Chrome garbage-collects
       // them after exactly 9-10 seconds, cutting off the audio tracks and halting compilation.
       (window as any)._activeRecordingRefs = {
+        canvas,
+        loadedImages,
         audioCtx,
         recAudio,
         mediaStreamDestination,
@@ -412,8 +537,10 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
           console.error("Compilation failed:", err);
           setVideoRecordingState('error');
         } finally {
-          // Release references to allow GC now that the download has been triggered
-          (window as any)._activeRecordingRefs = null;
+          // Keep references active for 3 seconds to let the browser safely write the file
+          setTimeout(() => {
+            (window as any)._activeRecordingRefs = null;
+          }, 3000);
         }
       };
 
@@ -437,6 +564,11 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
       const totalFrames = Math.ceil(totalDuration / frameDuration);
 
       const timerId = setInterval(() => {
+        // Auto-resume AudioContext if suspended by browser
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(e => console.warn("Failed to resume AudioContext during record loop:", e));
+        }
+
         if (frameCount >= totalFrames) {
           clearInterval(timerId);
           mediaRecorder.stop();
@@ -471,12 +603,148 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
     }
   };
 
+  const isYouTubeUrl = (url: string) => {
+    return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+  };
+
+  // Setup YouTube player dynamically if needed
   useEffect(() => {
-    // Setup audio
-    if (config?.musicUrl) {
-      audioRef.current = new Audio(config.musicUrl);
+    const playableUrl = getPlayableAudioUrl(selectedMusicUrl);
+    const videoId = getYouTubeId(playableUrl);
+    let active = true;
+
+    if (isYouTubeUrl(playableUrl) && videoId) {
+      const initYT = () => {
+        if (!active) return;
+
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.loadVideoById === 'function') {
+          try {
+            ytPlayerRef.current.loadVideoById({ videoId, startSeconds: 0 });
+            if (!isPlaying) {
+              ytPlayerRef.current.pauseVideo();
+            }
+            return;
+          } catch (e) {
+            console.warn("Failed to reuse YT player:", e);
+          }
+        }
+
+        // If player exists but is not ready or has failed, destroy it before creating a new one
+        if (ytPlayerRef.current) {
+          try {
+            if (typeof ytPlayerRef.current.destroy === 'function') {
+              ytPlayerRef.current.destroy();
+            }
+          } catch (e) {
+            console.warn("Failed to destroy YT player:", e);
+          }
+          ytPlayerRef.current = null;
+        }
+
+        if ((window as any).YT && (window as any).YT.Player) {
+          ytPlayerRef.current = new (window as any).YT.Player('youtube-tribute-player', {
+            height: '0',
+            width: '0',
+            videoId: videoId,
+            playerVars: {
+              autoplay: 0,
+              controls: 0,
+              disablekb: 1,
+              fs: 0,
+              rel: 0,
+              origin: window.location.origin, // Explicitly specify parent origin to satisfy postMessage checks
+              modestbranding: 1
+            },
+            events: {
+              onReady: (event: any) => {
+                if (!active) return;
+                event.target.setVolume(isMuted ? 0 : volume * 100);
+                if (isPlaying) {
+                  event.target.playVideo();
+                }
+              }
+            }
+          });
+        }
+      };
+
+      if (!(window as any).YT || !(window as any).YT.Player) {
+        // Load YouTube API script if missing
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        (window as any).onYouTubeIframeAPIReady = initYT;
+      } else {
+        initYT();
+      }
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [selectedMusicUrl]);
+
+  // Clean up player on component unmount
+  useEffect(() => {
+    return () => {
+      if (ytPlayerRef.current) {
+        try {
+          if (typeof ytPlayerRef.current.destroy === 'function') {
+            ytPlayerRef.current.destroy();
+          }
+        } catch (e) {
+          console.warn("Failed to clean up YT player on unmount:", e);
+        }
+        ytPlayerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Playback control effect
+  useEffect(() => {
+    const playableUrl = getPlayableAudioUrl(selectedMusicUrl);
+    if (isPlaying) {
+      if (isYouTubeUrl(playableUrl)) {
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+          ytPlayerRef.current.playVideo();
+        }
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
+      } else {
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+          ytPlayerRef.current.pauseVideo();
+        }
+        if (audioRef.current) {
+          audioRef.current.play().catch(e => console.warn(e));
+        }
+      }
+    } else {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        ytPlayerRef.current.pauseVideo();
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    }
+  }, [isPlaying, selectedMusicUrl]);
+
+  // Setup MP3 audio if selected
+  useEffect(() => {
+    const playableUrl = getPlayableAudioUrl(selectedMusicUrl);
+    if (playableUrl && !isYouTubeUrl(playableUrl)) {
+      audioRef.current = new Audio(playableUrl);
       audioRef.current.loop = true;
-      audioRef.current.volume = volume;
+      audioRef.current.volume = isMuted ? 0 : volume;
+      if (isPlaying) {
+        audioRef.current.play().catch(e => console.warn(e));
+      }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     }
 
     return () => {
@@ -484,15 +752,16 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
         audioRef.current.pause();
         audioRef.current = null;
       }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
     };
-  }, [config?.musicUrl]);
+  }, [selectedMusicUrl]);
 
+  // Sync volume changes
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
+    }
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.setVolume === 'function') {
+      ytPlayerRef.current.setVolume(isMuted ? 0 : volume * 100);
     }
   }, [volume, isMuted]);
 
@@ -508,6 +777,9 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
           if (prev >= totalSlides - 1) {
             setIsPlaying(false);
             if (audioRef.current) audioRef.current.pause();
+            if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+              ytPlayerRef.current.pauseVideo();
+            }
             return 0; // Reset
           }
           return prev + 1;
@@ -523,21 +795,7 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
   }, [isPlaying, currentSlideIndex, totalSlides, slideDuration]);
 
   const handlePlayPause = () => {
-    if (!audioRef.current && config?.musicUrl) {
-      audioRef.current = new Audio(config.musicUrl);
-      audioRef.current.loop = true;
-      audioRef.current.volume = isMuted ? 0 : volume;
-    }
-
-    if (isPlaying) {
-      setIsPlaying(false);
-      if (audioRef.current) audioRef.current.pause();
-    } else {
-      setIsPlaying(true);
-      if (audioRef.current) {
-        audioRef.current.play().catch(err => console.log('Audio autoplay prevented:', err));
-      }
-    }
+    setIsPlaying(!isPlaying);
   };
 
   const handleRestart = () => {
@@ -545,7 +803,9 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
     setIsPlaying(true);
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(err => console.log(err));
+    }
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+      ytPlayerRef.current.seekTo(0, true);
     }
   };
 
@@ -706,6 +966,43 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
       </motion.div>
     );
   };
+
+  if (config?.videoEnabled === false) {
+    return (
+      <div className="w-full bg-midnight rounded-3xl overflow-hidden border border-gold/15 shadow-xl relative aspect-video flex flex-col items-center justify-center p-8 text-center text-ivory">
+        {/* Background gradient layout matching the site aesthetics */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-midnight via-slate-900 to-midnight opacity-95" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gold/5 via-transparent to-transparent pointer-events-none" />
+
+        <div className="relative z-10 space-y-6 max-w-lg">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            className="w-16 h-16 rounded-full bg-gold/10 border border-gold/25 flex items-center justify-center mx-auto"
+          >
+            <Film className="w-8 h-8 text-gold" />
+          </motion.div>
+
+          <motion.div
+            initial={{ y: 15, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="space-y-3"
+          >
+            <h3 className="text-xl md:text-2xl font-serif text-gold font-medium">
+              {lang === 'fr' ? "Film Hommage Indisponible" : "Fim Omaj la pa Disponib"}
+            </h3>
+            <p className="text-sm text-sage leading-relaxed whitespace-pre-line font-serif italic max-w-md mx-auto">
+              {lang === 'fr'
+                ? (config?.disabledMessageFr || "Le film hommage n'est pas encore disponible au visionnage.")
+                : (config?.disabledMessageHt || "Fim omaj la poko disponib pou gade.")}
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-midnight rounded-2xl shadow-2xl overflow-hidden border border-gold/10 relative">
@@ -921,24 +1218,49 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
               ) : (
                 <div className="space-y-4 my-2">
                   {/* Option 0: Dynamic WebM Video Compiler (Recommended) */}
-                  <div className="p-4 bg-gold/10 border-2 border-gold/40 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-gold/15 transition relative overflow-hidden group">
+                  <div className="p-4 bg-gold/10 border-2 border-gold/40 rounded-2xl flex flex-col gap-4 hover:bg-gold/15 transition relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-3 bg-gold/10 text-gold text-[9px] uppercase tracking-wider font-bold rounded-bl-xl font-mono">
                       {lang === 'fr' ? 'Recommandé' : 'Rekòmande'}
                     </div>
-                    <div className="space-y-1 pr-12">
-                      <p className="text-sm font-semibold text-midnight flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-gold animate-pulse" />
-                        {lang === 'fr' ? "Générer la Vidéo du Diaporama" : "Kreye Videyo Diaporam nan"}
-                      </p>
-                      <p className="text-[11px] text-slate-500 leading-normal">
-                        {lang === 'fr' 
-                          ? "Génère dynamiquement un film vidéo complet (WebM) avec la musique, les photos et les textes d'hommage." 
-                          : "Kreye yon videyo konplè (vèsyon WebM) avèk mizik background nan, foto yo, ak tout mesaj souvni yo."}
-                      </p>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-midnight flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-gold animate-pulse" />
+                          {lang === 'fr' ? "Générer la Vidéo du Diaporama" : "Kreye Videyo Diaporam nan"}
+                        </p>
+                        <p className="text-[11px] text-slate-500 leading-normal">
+                          {lang === 'fr' 
+                            ? "Génère dynamiquement un film vidéo complet (WebM) avec la musique, les photos et les textes d'hommage." 
+                            : "Kreye yon videyo konplè (vèsyon WebM) avèk mizik background nan, foto yo, ak tout mesaj souvni yo."}
+                        </p>
+                      </div>
+
+                      {/* Song Selector */}
+                      {audioTracks && audioTracks.length > 0 && (
+                        <div className="space-y-1 max-w-xs">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            {lang === 'fr' ? "Musique de fond du film" : "Mizik background videyo a"}
+                          </label>
+                          <select
+                            value={selectedMusicUrl}
+                            onChange={(e) => setSelectedMusicUrl(e.target.value)}
+                            className="w-full p-2.5 rounded-xl border border-gold/25 outline-none focus:border-gold bg-white text-xs font-semibold"
+                          >
+                            <option value={config?.musicUrl || ''}>
+                              {lang === 'fr' ? "Mélodie par défaut" : "Mizik pa defo"}
+                            </option>
+                            {audioTracks.filter(t => t.audioUrl).map((track) => (
+                              <option key={track.id} value={track.audioUrl}>
+                                {track.title} — {track.artist}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={handleGenerateVideo}
-                      className="px-4 py-2 bg-midnight text-gold hover:bg-slate-900 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
+                      className="px-4 py-2 bg-midnight text-gold hover:bg-slate-900 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer self-start sm:self-auto"
                     >
                       <Film className="w-3.5 h-3.5" />
                       {lang === 'fr' ? "Créer la vidéo" : "Kreye videyo a"}
@@ -1012,13 +1334,44 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
                           : "Telechaje tout bèl foto istorik ki pase nan videyo a."}
                       </p>
                     </div>
-                    <button
-                      onClick={downloadPhotos}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-950 text-ivory text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5 text-gold" />
-                      {lang === 'fr' ? "Télécharger" : "Telechaje"}
-                    </button>
+                    {photosPermission === 'approved' ? (
+                      <button
+                        onClick={downloadPhotos}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-950 text-ivory text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                      >
+                        <Download className="w-3.5 h-3.5 text-gold" />
+                        {lang === 'fr' ? "Télécharger" : "Telechaje"}
+                      </button>
+                    ) : photosPermission === 'pending' ? (
+                      <button
+                        disabled
+                        className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-not-allowed shrink-0"
+                      >
+                        <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                        {lang === 'fr' ? "En attente d'accès..." : "Ap tann otorizasyon..."}
+                      </button>
+                    ) : photosPermission === 'rejected' ? (
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-[10px] text-red-500 font-bold uppercase">{lang === 'fr' ? "Accès refusé" : "Aksè refize"}</span>
+                        <button
+                          onClick={() => {
+                            localStorage.removeItem('memorial_req_photos_id');
+                            setPhotosPermission('none');
+                          }}
+                          className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-midnight text-[10px] font-semibold rounded-lg transition"
+                        >
+                          {lang === 'fr' ? "Réessayer" : "Refè demann lan"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setRequestModalType('photos')}
+                        className="px-4 py-2 bg-gold hover:bg-gold/90 text-midnight text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        {lang === 'fr' ? "Demander l'accès" : "Mande otorizasyon"}
+                      </button>
+                    )}
                   </div>
 
                   {/* Option 4: Print/PDF Memorial Keepsake Album */}
@@ -1034,14 +1387,118 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
                           : "Kreye yon bèl ti liv souvni enprimab ak tout bèl foto ak mesaj yo."}
                       </p>
                     </div>
-                    <button
-                      onClick={() => window.print()}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-950 text-ivory text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-gold" />
-                      {lang === 'fr' ? "Imprimer / PDF" : "Enprime / PDF"}
-                    </button>
+                    {pdfPermission === 'approved' ? (
+                      <button
+                        onClick={() => window.print()}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-950 text-ivory text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-gold" />
+                        {lang === 'fr' ? "Imprimer / PDF" : "Enprime / PDF"}
+                      </button>
+                    ) : pdfPermission === 'pending' ? (
+                      <button
+                        disabled
+                        className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 cursor-not-allowed shrink-0"
+                      >
+                        <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                        {lang === 'fr' ? "En attente d'accès..." : "Ap tann otorizasyon..."}
+                      </button>
+                    ) : pdfPermission === 'rejected' ? (
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-[10px] text-red-500 font-bold uppercase">{lang === 'fr' ? "Accès refusé" : "Aksè refize"}</span>
+                        <button
+                          onClick={() => {
+                            localStorage.removeItem('memorial_req_pdf_id');
+                            setPdfPermission('none');
+                          }}
+                          className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-midnight text-[10px] font-semibold rounded-lg transition"
+                        >
+                          {lang === 'fr' ? "Réessayer" : "Refè demann lan"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setRequestModalType('pdf')}
+                        className="px-4 py-2 bg-gold hover:bg-gold/90 text-midnight text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        {lang === 'fr' ? "Demander l'accès" : "Mande otorizasyon"}
+                      </button>
+                    )}
                   </div>
+
+                  {/* Nested Permission Request Modal Overlay */}
+                  <AnimatePresence>
+                    {requestModalType && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="fixed inset-0 bg-black/75 backdrop-blur-xs z-[110] flex items-center justify-center p-4 cursor-default"
+                      >
+                        <motion.div
+                          initial={{ scale: 0.95, y: 10 }}
+                          animate={{ scale: 1, y: 0 }}
+                          exit={{ scale: 0.95, y: 10 }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="bg-white rounded-2xl p-6 max-w-sm w-full border border-gold/20 shadow-2xl space-y-4"
+                        >
+                          <div className="flex justify-between items-center border-b pb-2 border-slate-100">
+                            <h4 className="text-sm font-serif font-semibold text-midnight flex items-center gap-1.5">
+                              <Shield className="w-4 h-4 text-gold" />
+                              {lang === 'fr' ? "Demande d'autorisation" : "Demann otorizasyon"}
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRequestModalType(null);
+                                setRequesterName('');
+                              }}
+                              className="text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <p className="text-[11px] text-slate-500 leading-normal">
+                            {lang === 'fr'
+                              ? "Pour télécharger ou imprimer ces souvenirs, veuillez introduire votre nom complet. Votre demande sera soumise à l'approbation de l'administrateur du mémorial."
+                              : "Pou telechaje oswa enprime souvni sa yo, tanpri antre non konplè ou. Demann ou an pral ale jwenn admin nan pou l apwouve l."}
+                          </p>
+
+                          <form onSubmit={handleRequestPermission} className="space-y-4">
+                            <div className="space-y-1.5">
+                              <label className="block text-xs font-semibold text-slate-700">
+                                {lang === 'fr' ? "Votre Nom Complet" : "Non konplè ou"}
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={requesterName}
+                                onChange={(e) => setRequesterName(e.target.value)}
+                                placeholder="Ex: Marie Emmanuel"
+                                className="w-full p-2.5 rounded-xl border border-slate-200 focus:border-gold outline-none text-xs"
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={isSubmittingRequest || !requesterName.trim()}
+                              className="w-full py-2.5 bg-midnight hover:bg-slate-900 text-gold font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                            >
+                              {isSubmittingRequest ? (
+                                <div className="w-3.5 h-3.5 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5" />
+                              )}
+                              {lang === 'fr' ? "Envoyer la demande" : "Voye demann nan"}
+                            </button>
+                          </form>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
 
@@ -1055,6 +1512,8 @@ export default function TributePlayer({ config, photos, testimonials, lang }: Tr
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Hidden YouTube Player Iframe Target */}
+      <div id="youtube-tribute-player" style={{ display: 'none', width: 0, height: 0 }} />
     </div>
   );
 }

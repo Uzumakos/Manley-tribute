@@ -36,6 +36,7 @@ export interface Testimonial {
   photoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   isAnonymous: boolean;
+  likes?: number;
   createdAt: string;
 }
 
@@ -55,9 +56,30 @@ export interface TributeVideoConfig {
   title: string;
   musicUrl: string;
   downloadUrl?: string; // Optional direct mp4/webm download link
+  videoEnabled?: boolean;
+  disabledMessageFr?: string;
+  disabledMessageHt?: string;
   status: 'draft' | 'published';
   selectedPhotos: string[]; // List of Photo IDs
   selectedTestimonials: string[]; // List of Testimonial IDs
   slideDuration: number; // in seconds
   createdAt: string;
 }
+
+export interface AudioTrack {
+  id: string;
+  title: string;
+  artist: string;
+  youtubeUrl: string;
+  audioUrl?: string;
+  createdAt: string;
+}
+
+export interface DownloadRequest {
+  id: string;
+  name: string;
+  type: 'photos' | 'pdf';
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+

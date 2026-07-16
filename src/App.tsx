@@ -5,16 +5,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
+import {
   Heart, Calendar, Image as ImageIcon, Film, BookOpen, PenTool, ShieldAlert,
   ChevronRight, ArrowRight, CheckCircle2, Upload, Sparkles, Languages, Globe, Menu, X, ExternalLink
 } from 'lucide-react';
 
-import { Memorial, Testimonial, Photo, TributeVideoConfig, Language } from './types';
+import { Memorial, Testimonial, Photo, TributeVideoConfig, Language, AudioTrack } from './types';
 import { translations } from './translations';
 import TestimonialCard from './components/TestimonialCard';
 import TributePlayer from './components/TributePlayer';
 import AdminPanel from './components/AdminPanel';
+import MusicPlayer from './components/MusicPlayer';
 
 export default function App() {
   const [lang, setLang] = useState<Language>('fr');
@@ -24,8 +25,14 @@ export default function App() {
   // Core backend states
   const [memorial, setMemorial] = useState<Memorial | null>(null);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonialSort, setTestimonialSort] = useState<'recent' | 'likes'>('recent');
+
+  const handleTestimonialLike = (id: string, newLikesCount: number) => {
+    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, likes: newLikesCount } : t));
+  };
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [tributeVideo, setTributeVideo] = useState<TributeVideoConfig | null>(null);
+  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
 
@@ -55,31 +62,31 @@ export default function App() {
   const t = translations[lang];
 
   // Derived dynamic personality and traits content
-  const personalityTitle = lang === 'fr' 
-    ? (memorial?.personalityTitleFr || t.personalityTitle) 
+  const personalityTitle = lang === 'fr'
+    ? (memorial?.personalityTitleFr || t.personalityTitle)
     : (memorial?.personalityTitleHt || t.personalityTitle);
 
-  const personalityText = lang === 'fr' 
-    ? (memorial?.personalityTextFr || t.personalityText) 
+  const personalityText = lang === 'fr'
+    ? (memorial?.personalityTextFr || t.personalityText)
     : (memorial?.personalityTextHt || t.personalityText);
 
-  const traitsTitle = lang === 'fr' 
-    ? (memorial?.traitsTitleFr || "Traits Distinctifs") 
+  const traitsTitle = lang === 'fr'
+    ? (memorial?.traitsTitleFr || "Traits Distinctifs")
     : (memorial?.traitsTitleHt || "Karakteristik yo");
 
-  const defaultTraits = lang === 'fr' 
+  const defaultTraits = lang === 'fr'
     ? [
-        "Humilité profonde",
-        "Ingénieur de solutions élégantes",
-        "Mélomane & guitariste passionné",
-        "Fierté culturelle haïtienne"
-      ]
+      "Humilité profonde",
+      "Ingénieur de solutions élégantes",
+      "Mélomane & guitariste passionné",
+      "Fierté culturelle haïtienne"
+    ]
     : [
-        "Gwo imilite",
-        "Kreyatè solisyon elegant",
-        "Mizisyen ak jitaris pasyone",
-        "Fiyète kiltirèl ayisyen"
-      ];
+      "Gwo imilite",
+      "Kreyatè solisyon elegant",
+      "Mizisyen ak jitaris pasyone",
+      "Fiyète kiltirèl ayisyen"
+    ];
 
   const traitsList = lang === 'fr'
     ? (memorial?.traitsFr ? memorial.traitsFr.split('\n').map(item => item.trim()).filter(Boolean) : defaultTraits)
@@ -89,7 +96,7 @@ export default function App() {
   const fetchResources = async () => {
     try {
       setIsLoading(true);
-      
+
       // Load biography
       const mRes = await fetch('/api/memorial');
       const mData = await mRes.json();
@@ -112,6 +119,11 @@ export default function App() {
       const vRes = await fetch('/api/tribute-video');
       const vData = await vRes.json();
       setTributeVideo(vData);
+
+      // Load audio tracks
+      const aRes = await fetch('/api/audio-tracks');
+      const aData = await aRes.json();
+      setAudioTracks(aData || []);
 
     } catch (err) {
       console.error('Failed to load memorial data from fullstack backend:', err);
@@ -284,7 +296,7 @@ export default function App() {
   if (isLoading && !memorial) {
     return (
       <div className="min-h-screen bg-ivory flex flex-col items-center justify-center p-8">
-        <motion.div 
+        <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
           className="w-10 h-10 border-2 border-gold border-t-transparent rounded-full mb-4"
@@ -295,19 +307,19 @@ export default function App() {
   }
 
   // Categories helper mapping
-  const activePhotos = selectedGalleryCategory === 'All' 
-    ? photos 
+  const activePhotos = selectedGalleryCategory === 'All'
+    ? photos
     : photos.filter(p => p.category.toLowerCase() === selectedGalleryCategory.toLowerCase() || (selectedGalleryCategory === 'Moments' && p.category === 'Important Moments'));
 
   return (
     <div className="min-h-screen flex flex-col bg-ivory text-midnight antialiased selection:bg-gold/25">
-      
+
       {/* --- TOP REFINED STICKY HEADER --- */}
       <header className="sticky top-0 bg-ivory/80 backdrop-blur-md border-b border-gold/10 z-30 px-4 py-3 md:px-8 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          
+
           {/* Logo Title */}
-          <div 
+          <div
             onClick={() => { setActiveTab('home'); setMobileMenuOpen(false); }}
             className="flex items-center gap-2.5 cursor-pointer select-none group"
           >
@@ -326,57 +338,51 @@ export default function App() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
-            <button 
+            <button
               onClick={() => setActiveTab('home')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition ${
-                activeTab === 'home' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition ${activeTab === 'home' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
+                }`}
             >
               {t.navHome}
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('memorial')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition ${
-                activeTab === 'memorial' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition ${activeTab === 'memorial' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
+                }`}
             >
               {t.navMemorial}
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('testimonials')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition ${
-                activeTab === 'testimonials' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition ${activeTab === 'testimonials' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
+                }`}
             >
               {t.navTestimonials}
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('gallery')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition ${
-                activeTab === 'gallery' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition ${activeTab === 'gallery' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
+                }`}
             >
               {t.navGallery}
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('video')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition flex items-center gap-1 ${
-                activeTab === 'video' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium tracking-wide uppercase transition flex items-center gap-1 ${activeTab === 'video' ? 'text-gold bg-gold/5 font-semibold' : 'text-slate-600 hover:text-midnight hover:bg-slate-50'
+                }`}
             >
               <Film className="w-3.5 h-3.5" />
               {t.navVideo}
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('write-memory')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wide uppercase transition border border-gold/25 hover:bg-gold/5 flex items-center gap-1 ${
-                activeTab === 'write-memory' ? 'text-midnight bg-gold/10 border-gold/50' : 'text-gold bg-transparent'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wide uppercase transition border border-gold/25 hover:bg-gold/5 flex items-center gap-1 ${activeTab === 'write-memory' ? 'text-midnight bg-gold/10 border-gold/50' : 'text-gold bg-transparent'
+                }`}
             >
               <PenTool className="w-3.5 h-3.5" />
               {t.navWrite}
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('admin')}
               className={`ml-2 p-1.5 rounded-lg text-slate-400 hover:text-gold hover:bg-slate-50 transition`}
               title={t.navAdmin}
@@ -387,29 +393,27 @@ export default function App() {
 
           {/* Right actions: Language toggle and Mobile menu toggler */}
           <div className="flex items-center gap-3">
-            
+
             {/* Lang switcher pill */}
             <div className="bg-slate-100 rounded-full p-0.5 flex items-center border border-slate-200">
               <button
                 onClick={() => setLang('fr')}
-                className={`px-2.5 py-1 text-[10px] font-bold rounded-full transition ${
-                  lang === 'fr' ? 'bg-white text-midnight shadow-sm' : 'text-slate-500 hover:text-midnight'
-                }`}
+                className={`px-2.5 py-1 text-[10px] font-bold rounded-full transition ${lang === 'fr' ? 'bg-white text-midnight shadow-sm' : 'text-slate-500 hover:text-midnight'
+                  }`}
               >
                 FR
               </button>
               <button
                 onClick={() => setLang('ht')}
-                className={`px-2.5 py-1 text-[10px] font-bold rounded-full transition ${
-                  lang === 'ht' ? 'bg-white text-midnight shadow-sm' : 'text-slate-500 hover:text-midnight'
-                }`}
+                className={`px-2.5 py-1 text-[10px] font-bold rounded-full transition ${lang === 'ht' ? 'bg-white text-midnight shadow-sm' : 'text-slate-500 hover:text-midnight'
+                  }`}
               >
                 KREYÒL
               </button>
             </div>
 
             {/* Mobile menu trigger */}
-            <button 
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition text-midnight"
             >
@@ -423,7 +427,7 @@ export default function App() {
       {/* --- MOBILE NAVIGATION DRAWER --- */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -441,13 +445,12 @@ export default function App() {
               <button
                 key={item.tab}
                 onClick={() => { setActiveTab(item.tab as any); setMobileMenuOpen(false); }}
-                className={`w-full text-left py-2.5 px-3 rounded-xl text-sm font-medium tracking-wide uppercase flex items-center gap-2 ${
-                  item.highlight
+                className={`w-full text-left py-2.5 px-3 rounded-xl text-sm font-medium tracking-wide uppercase flex items-center gap-2 ${item.highlight
                     ? 'text-gold border border-gold/30 bg-gold/5'
                     : activeTab === item.tab
                       ? 'text-gold bg-gold/5 font-semibold'
                       : 'text-slate-600'
-                }`}
+                  }`}
               >
                 {item.icon && React.createElement(item.icon, { className: "w-4 h-4" })}
                 {item.label}
@@ -460,10 +463,10 @@ export default function App() {
       {/* --- MAIN PAGE VIEW PORT (ANIMATED TRANSITIONS) --- */}
       <main className="flex-1 py-8 px-4 md:px-8 max-w-7xl w-full mx-auto">
         <AnimatePresence mode="wait">
-          
+
           {/* --- LANDING HERO TAB --- */}
           {activeTab === 'home' && (
-            <motion.section 
+            <motion.section
               key="home"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -474,11 +477,11 @@ export default function App() {
               {/* Cinematic hero card */}
               <div className="relative rounded-3xl overflow-hidden bg-midnight min-h-[420px] md:min-h-[480px] py-10 md:py-6 shadow-2xl border border-gold/10 flex items-center">
                 {/* Background Ken Burns banner */}
-                <div 
+                <div
                   className="absolute inset-0 w-full h-full bg-cover bg-center opacity-60 animate-ken-burns origin-center"
                   style={{ backgroundImage: `url(${memorial?.coverImage})` }}
                 />
-                
+
                 {/* Visual Vignette Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-r from-midnight via-midnight/90 to-transparent" />
 
@@ -494,7 +497,7 @@ export default function App() {
                       " {memorial?.nickname} "
                     </p>
                     <p className="text-sage text-sm md:text-base font-light tracking-wide pt-2">
-                      {lang === 'fr' ? "26 Juin 1994 — À jamais dans notre mémoire collective" : "26 Jen 1994 — Pou tout tan nan kè nou"}
+                      {lang === 'fr' ? "26 Juin 1995 — À jamais dans notre mémoire collective" : "26 Jen 1994 — Pou tout tan nan kè nou"}
                     </p>
 
                     <div className="flex flex-wrap gap-4 pt-6">
@@ -517,7 +520,7 @@ export default function App() {
 
                   {memorial?.profileImage && (
                     <div className="md:col-span-5 lg:col-span-4 flex justify-center md:justify-end">
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, scale: 0.9, rotate: -2, y: 15 }}
                         animate={{ opacity: 1, scale: 1, rotate: 2, y: 0 }}
                         whileHover={{ scale: 1.03, rotate: 0 }}
@@ -527,8 +530,8 @@ export default function App() {
                       >
                         {/* Frame borders & design */}
                         <div className="relative overflow-hidden rounded-xl aspect-[3/4] bg-slate-900 border border-slate-200">
-                          <img 
-                            src={memorial.profileImage} 
+                          <img
+                            src={memorial.profileImage}
                             alt={memorial.fullName}
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
@@ -574,7 +577,7 @@ export default function App() {
                 {/* Decorative Timeline Sidebar Box */}
                 <div className="lg:col-span-5 bg-white rounded-3xl p-8 border border-gold/15 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 rounded-full blur-3xl -z-10" />
-                  
+
                   <h3 className="text-lg font-serif text-midnight font-medium mb-6 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-gold" />
                     {t.timelineTitle}
@@ -616,7 +619,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {testimonials.filter(t => t.status === 'approved').slice(0, 3).map((item) => (
-                    <TestimonialCard key={item.id} testimonial={item} lang={lang} />
+                    <TestimonialCard key={item.id} testimonial={item} lang={lang} onLike={handleTestimonialLike} />
                   ))}
                 </div>
               </div>
@@ -626,7 +629,7 @@ export default function App() {
 
           {/* --- DETAILED BIOGRAPHY TAB --- */}
           {activeTab === 'memorial' && (
-            <motion.section 
+            <motion.section
               key="memorial"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -645,17 +648,17 @@ export default function App() {
 
               {/* Cover layout */}
               <div className="relative w-full rounded-2xl overflow-hidden shadow-xl border border-gold/10 bg-slate-900 min-h-[300px] sm:min-h-[400px] md:min-h-[460px] flex items-center justify-center">
-                <img 
-                  src={memorial?.coverImage} 
-                  alt={memorial?.fullName} 
-                  className="absolute inset-0 w-full h-full object-cover opacity-60" 
+                <img
+                  src={memorial?.coverImage}
+                  alt={memorial?.fullName}
+                  className="absolute inset-0 w-full h-full object-cover opacity-60"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-midnight/90 via-midnight/40 to-midnight/20" />
 
                 {memorial?.profileImage && (
                   <div className="relative z-10 p-4">
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.9, rotate: -2, y: 15 }}
                       animate={{ opacity: 1, scale: 1, rotate: 2, y: 0 }}
                       whileHover={{ scale: 1.03, rotate: 0 }}
@@ -664,8 +667,8 @@ export default function App() {
                       className="relative p-2.5 bg-white hover:bg-ivory rounded-2xl shadow-2xl border-2 border-gold/40 w-44 h-56 sm:w-56 sm:h-72 md:w-64 md:h-80 cursor-pointer flex flex-col"
                     >
                       <div className="relative overflow-hidden rounded-xl aspect-[3/4] bg-slate-900 border border-slate-200 flex-1">
-                        <img 
-                          src={memorial.profileImage} 
+                        <img
+                          src={memorial.profileImage}
                           alt={memorial.fullName}
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
@@ -680,36 +683,40 @@ export default function App() {
                 )}
               </div>
 
-              {/* Biography Columns */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 md:pt-12">
-                <div className="md:col-span-2 space-y-6">
-                  <h3 className="text-xl font-serif text-midnight font-semibold border-b border-gold/10 pb-2">
-                    {lang === 'fr' ? 'Parcours d\'une âme d\'exception' : 'Biyografi yon bèl moun'}
+              {/* Biography & Personality Sections (Stacked Vertically) */}
+              <div className="space-y-10 pt-8 md:pt-12">
+                {/* Biography */}
+                <div className="space-y-6">
+                  <h3 className="text-2xl font-serif text-midnight font-semibold border-b border-gold/10 pb-3">
+                    {lang === 'fr' ? "Parcours d'une âme d'exception" : "Biyografi yon bèl moun"}
                   </h3>
-                  <div className="text-slate-700 leading-relaxed text-sm whitespace-pre-line font-serif text-base">
+                  <div className="text-slate-700 leading-relaxed font-serif text-base whitespace-pre-line">
                     {memorial?.biography}
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="p-6 bg-white border border-gold/15 rounded-2xl space-y-4 shadow-sm">
-                    <h3 className="text-md font-serif text-midnight font-semibold border-b border-gold/10 pb-1.5">
+                {/* Personality & Traits */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {/* Personality (Wider - col-span-2) */}
+                  <div className="md:col-span-2 p-8 bg-white border border-gold/15 rounded-3xl space-y-5 shadow-sm">
+                    <h3 className="text-xl font-serif text-midnight font-semibold border-b border-gold/10 pb-2">
                       {personalityTitle}
                     </h3>
-                    <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+                    <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                       {personalityText}
                     </p>
                   </div>
 
-                  <div className="p-6 bg-white border border-gold/15 rounded-2xl space-y-4 shadow-sm">
-                    <h3 className="text-md font-serif text-midnight font-semibold border-b border-gold/10 pb-1.5">
+                  {/* Distinctive Traits (col-span-1) */}
+                  <div className="p-8 bg-white border border-gold/15 rounded-3xl space-y-5 shadow-sm">
+                    <h3 className="text-xl font-serif text-midnight font-semibold border-b border-gold/10 pb-2">
                       {traitsTitle}
                     </h3>
-                    <ul className="text-xs text-slate-600 space-y-2.5">
+                    <ul className="text-sm text-slate-600 space-y-3">
                       {traitsList.map((trait, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-gold" />
-                          <span>{trait}</span>
+                        <li key={index} className="flex items-center gap-3">
+                          <span className="w-2 h-2 rounded-full bg-gold shrink-0" />
+                          <span className="font-serif italic">{trait}</span>
                         </li>
                       ))}
                     </ul>
@@ -721,7 +728,7 @@ export default function App() {
 
           {/* --- TESTIMONIALS BOARD TAB --- */}
           {activeTab === 'testimonials' && (
-            <motion.section 
+            <motion.section
               key="testimonials"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -750,6 +757,36 @@ export default function App() {
                 </button>
               </div>
 
+              {/* Sorting Bar */}
+              {testimonials.filter(t => t.status === 'approved').length > 0 && (
+                <div className="flex items-center gap-3 py-1 bg-white/40 backdrop-blur-sm px-4 rounded-xl border border-gold/10 self-start text-xs">
+                  <span className="text-slate-500 font-medium">{t.sortBy} :</span>
+                  <div className="bg-slate-100 rounded-lg p-0.5 flex items-center border border-slate-200 shadow-sm">
+                    <button
+                      onClick={() => setTestimonialSort('recent')}
+                      className={`px-3 py-1 text-[11px] font-semibold rounded-md transition ${
+                        testimonialSort === 'recent'
+                          ? 'bg-white text-midnight shadow-sm'
+                          : 'text-slate-500 hover:text-midnight'
+                      }`}
+                    >
+                      {t.sortRecent}
+                    </button>
+                    <button
+                      onClick={() => setTestimonialSort('likes')}
+                      className={`px-3 py-1 text-[11px] font-semibold rounded-md transition flex items-center gap-1 ${
+                        testimonialSort === 'likes'
+                          ? 'bg-white text-midnight shadow-sm'
+                          : 'text-slate-500 hover:text-midnight'
+                      }`}
+                    >
+                      <Heart className="w-3 h-3 text-rose-500 fill-current" />
+                      {t.sortMostLiked}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Grid showing approved testimonials */}
               {testimonials.filter(t => t.status === 'approved').length === 0 ? (
                 <div className="py-16 text-center bg-white border border-slate-100 rounded-3xl max-w-xl mx-auto p-8 space-y-4">
@@ -767,8 +804,18 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {testimonials
                     .filter(t => t.status === 'approved')
+                    .sort((a, b) => {
+                      if (testimonialSort === 'likes') {
+                        const likesA = a.likes || 0;
+                        const likesB = b.likes || 0;
+                        if (likesB !== likesA) {
+                          return likesB - likesA;
+                        }
+                      }
+                      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                    })
                     .map((item) => (
-                      <TestimonialCard key={item.id} testimonial={item} lang={lang} />
+                      <TestimonialCard key={item.id} testimonial={item} lang={lang} onLike={handleTestimonialLike} />
                     ))}
                 </div>
               )}
@@ -777,7 +824,7 @@ export default function App() {
 
           {/* --- COLLABORATIVE MUSEUM GALLERY TAB --- */}
           {activeTab === 'gallery' && (
-            <motion.section 
+            <motion.section
               key="gallery"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -810,11 +857,10 @@ export default function App() {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedGalleryCategory(cat.id)}
-                    className={`px-4 py-1.5 rounded-full text-xs transition uppercase tracking-wider font-medium ${
-                      selectedGalleryCategory === cat.id 
-                        ? 'bg-midnight text-ivory shadow-sm' 
+                    className={`px-4 py-1.5 rounded-full text-xs transition uppercase tracking-wider font-medium ${selectedGalleryCategory === cat.id
+                        ? 'bg-midnight text-ivory shadow-sm'
                         : 'bg-white hover:bg-slate-50 border border-slate-200 text-slate-600'
-                    }`}
+                      }`}
                   >
                     {cat.label}
                   </button>
@@ -823,7 +869,7 @@ export default function App() {
 
               {/* Collaborative upload component overlay */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start pt-4">
-                
+
                 {/* Visual Museum Exhibition Grid */}
                 <div className="lg:col-span-8 space-y-6">
                   {activePhotos.length === 0 ? (
@@ -835,17 +881,17 @@ export default function App() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       {activePhotos.map((p) => (
-                        <div 
-                          key={p.id} 
+                        <div
+                          key={p.id}
                           className="bg-white p-4 rounded-2xl border border-gold/10 shadow-sm flex flex-col justify-between hover:shadow-md transition"
                         >
-                          <div 
+                          <div
                             onClick={() => setViewingImageUrl(p.imageUrl)}
                             className="aspect-[4/3] w-full rounded-xl overflow-hidden bg-slate-100 relative group cursor-zoom-in"
                           >
-                            <img 
-                              src={p.imageUrl} 
-                              alt={p.caption} 
+                            <img
+                              src={p.imageUrl}
+                              alt={p.caption}
                               className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
                               referrerPolicy="no-referrer"
                             />
@@ -886,11 +932,10 @@ export default function App() {
                       <div
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => handleFileDrop(e, 'gallery')}
-                        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
-                          galleryPhotoPreview 
-                            ? 'border-gold/40 bg-gold/5' 
+                        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${galleryPhotoPreview
+                            ? 'border-gold/40 bg-gold/5'
                             : 'border-gold/20 hover:border-gold/40 hover:bg-slate-50'
-                        }`}
+                          }`}
                         onClick={() => document.getElementById('gallery-file-pick')?.click()}
                       >
                         {galleryPhotoPreview ? (
@@ -992,7 +1037,7 @@ export default function App() {
 
           {/* --- TRIBUTE VIDEO DOCUMENTARY TAB --- */}
           {activeTab === 'video' && (
-            <motion.section 
+            <motion.section
               key="video"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1013,13 +1058,14 @@ export default function App() {
               </div>
 
               {/* Renders high-fidelity tribute movie player */}
-              <TributePlayer 
-                config={tributeVideo} 
-                photos={photos} 
+              <TributePlayer
+                config={tributeVideo}
+                photos={photos}
                 testimonials={testimonials.filter(t => t.status === 'approved')}
                 lang={lang}
+                audioTracks={audioTracks}
               />
-              
+
               <div className="p-6 bg-slate-900 border border-gold/10 text-ivory rounded-2xl flex flex-col md:flex-row gap-4 justify-between items-center text-center md:text-left">
                 <div className="space-y-1">
                   <p className="text-sm font-serif italic text-gold">« Manley continuera de vivre dans nos souvenirs. »</p>
@@ -1027,7 +1073,7 @@ export default function App() {
                     {lang === 'fr' ? "Un film généré par les contributions de la communauté" : "Yon bèl videyo ki fèt ak kontribisyon nou tout"}
                   </p>
                 </div>
-                
+
                 <button
                   onClick={() => setActiveTab('write-memory')}
                   className="px-4 py-2 bg-gold hover:bg-gold/95 text-midnight rounded-xl text-xs font-semibold transition"
@@ -1040,7 +1086,7 @@ export default function App() {
 
           {/* --- WRITE MEMORY CONTRIBUTION FORM TAB --- */}
           {activeTab === 'write-memory' && (
-            <motion.section 
+            <motion.section
               key="write-memory"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1049,7 +1095,7 @@ export default function App() {
             >
               <AnimatePresence mode="wait">
                 {!formSuccess ? (
-                  <motion.div 
+                  <motion.div
                     key="form-fields"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -1070,7 +1116,7 @@ export default function App() {
                     </div>
 
                     <form onSubmit={handleTestimonialSubmit} className="space-y-5">
-                      
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-semibold text-midnight/80 mb-1.5">
@@ -1179,11 +1225,10 @@ export default function App() {
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={(e) => handleFileDrop(e, 'form')}
                           onClick={() => document.getElementById('form-file-pick')?.click()}
-                          className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition ${
-                            formPhotoPreview 
-                              ? 'border-gold bg-gold/5' 
+                          className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition ${formPhotoPreview
+                              ? 'border-gold bg-gold/5'
                               : 'border-gold/20 hover:border-gold/40 hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           {formPhotoPreview ? (
                             <div className="space-y-2">
@@ -1233,7 +1278,7 @@ export default function App() {
                     </form>
                   </motion.div>
                 ) : (
-                  <motion.div 
+                  <motion.div
                     key="form-success"
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -1260,7 +1305,7 @@ export default function App() {
                       >
                         {t.writeAnother}
                       </button>
-                      
+
                       <button
                         onClick={() => setActiveTab('testimonials')}
                         className="px-5 py-2.5 rounded-xl bg-midnight hover:bg-slate-800 text-ivory text-xs font-semibold tracking-wide uppercase transition flex items-center gap-1.5 justify-center"
@@ -1277,20 +1322,21 @@ export default function App() {
 
           {/* --- ADMIN MODERATION TAB --- */}
           {activeTab === 'admin' && (
-            <motion.section 
+            <motion.section
               key="admin"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
             >
               {/* Load Admin Dashboard Control Console */}
-              <AdminPanel 
-                onRefresh={fetchResources} 
-                lang={lang} 
+              <AdminPanel
+                onRefresh={fetchResources}
+                lang={lang}
                 memorial={memorial}
                 testimonials={testimonials}
                 photos={photos}
                 tributeVideo={tributeVideo}
+                audioTracks={audioTracks}
               />
             </motion.section>
           )}
@@ -1301,7 +1347,7 @@ export default function App() {
       {/* --- REFINED STYLISH FOOTER --- */}
       <footer className="bg-slate-900 text-ivory py-12 px-6 md:px-12 border-t border-gold/15 mt-16 text-center md:text-left transition-all">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-          
+
           <div className="space-y-2">
             <h3 className="text-lg font-serif font-medium tracking-wide text-gold">
               En mémoire d'Alcide Emmanuel
@@ -1336,12 +1382,12 @@ export default function App() {
 
       {/* Expanded Image Viewer Modal */}
       {viewingImageUrl && (
-        <div 
+        <div
           onClick={() => setViewingImageUrl(null)}
           className="fixed inset-0 bg-black/85 backdrop-blur-xs z-[100] flex items-center justify-center p-4 cursor-zoom-out animate-fade-in"
         >
-          <div 
-            onClick={(e) => e.stopPropagation()} 
+          <div
+            onClick={(e) => e.stopPropagation()}
             className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl border border-gold/20 flex flex-col p-2 cursor-default animate-scale-up"
           >
             <button
@@ -1352,19 +1398,19 @@ export default function App() {
               <X className="w-5 h-5" />
             </button>
             <div className="overflow-auto flex items-center justify-center bg-slate-50 rounded-xl p-1">
-              <img 
-                src={viewingImageUrl} 
-                alt="Aperçu" 
-                className="max-h-[75vh] object-contain rounded-lg shadow-inner" 
+              <img
+                src={viewingImageUrl}
+                alt="Aperçu"
+                className="max-h-[75vh] object-contain rounded-lg shadow-inner"
                 referrerPolicy="no-referrer"
               />
             </div>
             <div className="py-3 px-4 flex items-center justify-between text-xs text-slate-500 font-mono bg-white border-t border-slate-100">
               <span>{lang === 'fr' ? "Aperçu de l'image" : "Gade foto a"}</span>
-              <a 
-                href={viewingImageUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href={viewingImageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gold flex items-center gap-1 hover:underline text-xs font-semibold"
               >
                 {lang === 'fr' ? 'Ouvrir dans un nouvel onglet' : 'Lese nan yon lòt onglet'}
@@ -1374,6 +1420,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Persistent floating audio player */}
+      <MusicPlayer tracks={audioTracks} lang={lang} />
 
     </div>
   );

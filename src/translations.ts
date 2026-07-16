@@ -69,7 +69,10 @@ export const translations = {
 
     // Miscellaneous
     loading: "Chargement du mémorial...",
-    backToHome: "Retour à l'accueil"
+    backToHome: "Retour à l'accueil",
+    sortBy: "Trier par",
+    sortRecent: "Plus récents",
+    sortMostLiked: "Plus aimés"
   },
   ht: {
     title: "Nan memwa Alcide Emmanuel",
@@ -136,7 +139,10 @@ export const translations = {
 
     // Miscellaneous
     loading: "Ap chaje mémorial la...",
-    backToHome: "Retounen lakay"
+    backToHome: "Retounen lakay",
+    sortBy: "Triye pa",
+    sortRecent: "Dènye yo",
+    sortMostLiked: "Pi renmen yo"
   }
 };
 export type TranslationKeys = keyof typeof translations.fr;

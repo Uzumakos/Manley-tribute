@@ -3,12 +3,20 @@
     "id": "manley-memorial",
     "fullName": "Alcide Emmanuel",
     "nickname": "Manley",
-    "birthDate": "1994-06-26",
+    "birthDate": "1995-06-26",
     "importantDate": "26 Juin",
-    "biography": "Alcide Emmanuel, affectueusement connu par tous sous le nom de « Manley », était une âme d'une générosité sans borne, un ingénieur passionné, et un musicien talentueux. Né le 26 juin, il a consacré sa vie à créer des ponts entre les personnes, à partager son amour pour la culture haïtienne, et à inspirer ses proches par son humilité et sa soif insatiable de savoir.\n\nQue ce soit à travers les mélodies qu'il jouait à la guitare ou les lignes de code élégantes qu'il écrivait pour résoudre des problèmes complexes, Manley mettait son cœur entier dans chaque création. Son sourire contagieux, sa bienveillance et sa sagesse continuent d'éclairer le chemin de tous ceux qui ont eu le privilège de croiser sa route. Ce mémorial est un espace vivant pour célébrer sa lumière, préserver ses mots, et lui dire merci pour chaque instant partagé.",
-    "coverImage": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=1200",
-    "profileImage": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400",
-    "createdAt": "2026-07-11T22:00:00Z"
+    "biography": "Alcide Emmanuel, affectueusement connu par tous sous le nom de « Manley », était une âme d'une générosité sans borne, un frère, un ami. Né le 26 juin, toute sa vie il l'avait passé à créer des ponts entre les personnes, à partager son amour , et à inspirer ses proches par sa joie de vivre.\n\nManley mettait son cœur entier dans tout ce qu'il faisait. Son sourire contagieux, sa bienveillance et sa loyauté continuent d'éclairer le chemin de tous ceux qui ont eu le privilège de croiser sa route. Ce mémorial est un espace vivant pour célébrer sa lumière, préserver ses mots, et lui dire merci pour chaque instant partagé.",
+    "coverImage": "https://ik.imagekit.io/tche25kem/MANLEY23.jpg?updatedAt=1783993088249",
+    "profileImage": "https://ik.imagekit.io/tche25kem/Manley_54.jpg?updatedAt=1783840985375",
+    "createdAt": "2026-07-11T22:00:00Z",
+    "personalityTitleFr": "Sa Personnalité & Ses Valeurs",
+    "personalityTitleHt": "Pèsonalite l ak Valè li yo",
+    "personalityTextFr": "Manley se distinguait par un alliage rare de loyauté et de sensibilité. D'une générosité naturelle, il partageait sans compter ses connaissances. Sa résilience, son écoute attentive et son humilité exemplaire laissaient une empreinte immédiate sur tous ceux qui collaboraient ou vivaient avec lui.",
+    "personalityTextHt": "Manley te briye paske li te genyen yon entèlijans,lwayote trè solid melanje ak yon bèl sansibilite. Li te genyen yon nati jenere, li te pataje konesans li san limit. Pasyans li, kapasite l pou l koute moun, ak imilite l te toujou touche kè tout moun ki te kolabore avè l.",
+    "traitsTitleFr": "Traits Distinctifs",
+    "traitsTitleHt": "Karakteristik yo",
+    "traitsFr": "Attentif\nCourageux\nLoyal\nGénéreux\nAimant la vie",
+    "traitsHt": "Atantif\nVanyan\nLwayal\nJenere\nRenmen lavi"
   },
   "testimonials": [
     {
@@ -47,7 +55,8 @@
       "message": "Un professionnel exceptionnel et un esprit brillant. Travailler avec Manley était un honneur. Sa rigueur, sa créativité et surtout son humilité exemplaire ont profondément marqué notre équipe technique. Son héritage se perpétue dans nos réalisations.",
       "status": "approved",
       "isAnonymous": false,
-      "createdAt": "2026-07-03T09:15:00Z"
+      "createdAt": "2026-07-03T09:15:00Z",
+      "likes": 0
     },
     {
       "id": "t4",
@@ -60,7 +69,22 @@
       "photoUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=300",
       "status": "approved",
       "isAnonymous": false,
-      "createdAt": "2026-07-04T18:20:00Z"
+      "createdAt": "2026-07-04T18:20:00Z",
+      "likes": 0
+    },
+    {
+      "id": "t_1783894940518_up6kd",
+      "memorialId": "manley-memorial",
+      "authorName": "Amedee Erns Baptiste ",
+      "nickname": "Dante",
+      "relationship": "friend",
+      "language": "ht",
+      "message": "Nou te toujou dakò itilize kreyativite nou pou soti tèt nou.",
+      "photoUrl": "/uploads/file_1783894940441_j0kza.jpg",
+      "status": "approved",
+      "isAnonymous": false,
+      "createdAt": "2026-07-12T22:22:20.520Z",
+      "likes": 2
     }
   ],
   "photos": [
@@ -108,17 +132,82 @@
       "caption": "Manley contemplant le coucher de soleil au bord de la mer en Haïti.",
       "uploadedBy": "Makenzy Jean",
       "createdAt": "2026-07-05T19:10:00Z"
+    },
+    {
+      "id": "p_1783895181792_jq2os",
+      "memorialId": "manley-memorial",
+      "category": "Childhood",
+      "imageUrl": "/uploads/file_1783895181762_fb1ox.jpg",
+      "caption": "Manley kap fè ti braslè",
+      "uploadedBy": "Dante",
+      "createdAt": "2026-07-12T22:26:21.796Z"
     }
   ],
   "tributeVideo": {
     "id": "v1",
     "memorialId": "manley-memorial",
     "title": "Alcide Emmanuel (Manley) - Une Vie de Lumière",
-    "musicUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "musicUrl": "https://ik.imagekit.io/tche25kem/L%C3%A8m%20Prale.mp3",
     "status": "published",
-    "selectedPhotos": ["p1", "p2", "p3", "p4", "p5"],
-    "selectedTestimonials": ["t1", "t2", "t4"],
+    "selectedPhotos": [
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+      "p5",
+      "p_1783895181792_jq2os"
+    ],
+    "selectedTestimonials": [
+      "t1",
+      "t2",
+      "t4",
+      "t_1783894940518_up6kd"
+    ],
     "slideDuration": 6,
-    "createdAt": "2026-07-10T15:00:00Z"
+    "createdAt": "2026-07-16T13:11:18.050Z",
+    "downloadUrl": ""
+  },
+  "audioTracks": [
+    {
+      "id": "a_1784206791542_0j8he",
+      "title": "Without You",
+      "artist": "Quavo",
+      "youtubeUrl": "https://www.youtube.com/watch?v=_uS8QRe2qfE",
+      "createdAt": "2026-07-16T12:59:51.567Z"
+    },
+    {
+      "id": "a_1784206926786_2tcz5",
+      "title": "Lèm prale",
+      "artist": "Black Boy",
+      "youtubeUrl": "https://www.youtube.com/watch?v=nBC-eqEEBGk",
+      "createdAt": "2026-07-16T13:02:06.789Z"
+    },
+    {
+      "id": "a_1784206978602_e6zz1",
+      "title": "Sakrifis",
+      "artist": "47 G-Shytt",
+      "youtubeUrl": "https://www.youtube.com/watch?v=ZEtj5KEFe3k",
+      "createdAt": "2026-07-16T13:02:58.604Z"
+    },
+    {
+      "id": "a_1784207029695_iutdm",
+      "title": "Champion",
+      "artist": "47 G-Shytt",
+      "youtubeUrl": "https://www.youtube.com/watch?v=bv0oTmHeN70",
+      "createdAt": "2026-07-16T13:03:49.698Z"
+    },
+    {
+      "id": "a_1784211761674_e7miy",
+      "title": "Test MP3 Track",
+      "artist": "Test Artist",
+      "youtubeUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "audioUrl": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      "createdAt": "2026-07-16T14:22:41.681Z"
+    }
+  ],
+  "likesMap": {
+    "t_1783894940518_up6kd": 2,
+    "t4": 0,
+    "t3": 0
   }
 }

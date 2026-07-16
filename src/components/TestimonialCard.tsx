@@ -11,12 +11,19 @@ interface TestimonialCardProps {
   key?: string;
   testimonial: Testimonial;
   lang: 'fr' | 'ht';
+  onLike?: (id: string, newLikesCount: number) => void;
 }
 
-export default function TestimonialCard({ testimonial, lang }: TestimonialCardProps) {
+export default function TestimonialCard({ testimonial, lang, onLike }: TestimonialCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [likes, setLikes] = useState(0);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(() => {
+    try {
+      const likedItems = JSON.parse(localStorage.getItem('liked_testimonials') || '{}');
+      return !!likedItems[testimonial.id];
+    } catch {
+      return false;
+    }
+  });
 
   const formatRelation = (rel: string) => {
     const mapFr: Record<string, string> = {
@@ -34,13 +41,58 @@ export default function TestimonialCard({ testimonial, lang }: TestimonialCardPr
     return lang === 'fr' ? mapFr[rel] || rel : mapHt[rel] || rel;
   };
 
-  const handleLike = () => {
-    if (!liked) {
-      setLikes(likes + 1);
-      setLiked(true);
-    } else {
-      setLikes(likes - 1);
-      setLiked(false);
+  const handleLike = async () => {
+    const action = liked ? 'unlike' : 'like';
+    const newLiked = !liked;
+    
+    // Toggle liked state optimistically
+    setLiked(newLiked);
+
+    try {
+      const likedItems = JSON.parse(localStorage.getItem('liked_testimonials') || '{}');
+      if (newLiked) {
+        likedItems[testimonial.id] = true;
+      } else {
+        delete likedItems[testimonial.id];
+      }
+      localStorage.setItem('liked_testimonials', JSON.stringify(likedItems));
+    } catch (e) {
+      console.error('Failed to save liked state in local storage:', e);
+    }
+
+    try {
+      const res = await fetch(`/api/testimonials/${testimonial.id}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (onLike) {
+          onLike(testimonial.id, data.likes || 0);
+        }
+      } else {
+        // Rollback on failure
+        setLiked(liked);
+        const likedItems = JSON.parse(localStorage.getItem('liked_testimonials') || '{}');
+        if (liked) {
+          likedItems[testimonial.id] = true;
+        } else {
+          delete likedItems[testimonial.id];
+        }
+        localStorage.setItem('liked_testimonials', JSON.stringify(likedItems));
+      }
+    } catch (err) {
+      console.error('Like request failed:', err);
+      // Rollback
+      setLiked(liked);
+      const likedItems = JSON.parse(localStorage.getItem('liked_testimonials') || '{}');
+      if (liked) {
+        likedItems[testimonial.id] = true;
+      } else {
+        delete likedItems[testimonial.id];
+      }
+      localStorage.setItem('liked_testimonials', JSON.stringify(likedItems));
     }
   };
 
@@ -82,7 +134,7 @@ export default function TestimonialCard({ testimonial, lang }: TestimonialCardPr
         </div>
 
         {/* Message Content */}
-        <p className="text-slate-700 font-serif text-sm leading-relaxed italic border-l border-gold/10 pl-4 py-1">
+        <p className="text-slate-900 font-serif font-bold text-base md:text-lg leading-relaxed italic border-l-2 border-gold/30 pl-4 py-1">
           « {testimonial.message} »
         </p>
 
@@ -123,7 +175,7 @@ export default function TestimonialCard({ testimonial, lang }: TestimonialCardPr
           }`}
         >
           <Heart className={`w-3.5 h-3.5 ${liked ? 'fill-rose-600' : ''}`} />
-          <span>{likes > 0 ? likes : ''}</span>
+          <span>{(testimonial.likes && testimonial.likes > 0) ? testimonial.likes : ''}</span>
         </button>
       </div>
 
