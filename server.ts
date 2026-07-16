@@ -9,11 +9,9 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import ws from 'ws';
-
-// Fix Node.js < 22 WebSocket support for Supabase Realtime client
+// Satisfy Supabase Realtime client requirements in Node < 22 environments without loading external ws library
 if (typeof global.WebSocket === 'undefined') {
-  (global as any).WebSocket = ws;
+  (global as any).WebSocket = class {};
 }
 
 dotenv.config({ path: '.env.local' });
