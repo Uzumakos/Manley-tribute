@@ -5,6 +5,7 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import path from 'path';
 
 // --- Shared Init ---
 const supabaseUrl = process.env.SUPABASE_URL || '';
@@ -269,11 +270,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json(data);
     }
 
-    // POST /api/upload (base64 file upload — not supported in serverless, return informative error)
+    // POST /api/upload (base64 file upload to Supabase Storage)
     if (urlPath === '/api/upload' && method === 'POST') {
-      return res.status(501).json({
-        error: 'File uploads via base64 are not supported in the serverless deployment. Use Supabase Storage instead.',
-      });
+      const { base64Data, fileName } = req.body || {};
+      if (!base64Data || !fileName) {
+        return res.status(400).json({ error: 'Données manquantes / Done manke' });
+      }
+
+      if (!supabase) {
+        return res.status(503).json({ error: 'Supabase n\'est pas configuré / Supabase pa konfigire' });
+      }
+
+      const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).json({ error: 'Format base64 invalide / Fòma pa valid' });
+      }
+
+      const mimeType = matches[1];
+      const buffer = Buffer.from(matches[2], 'base64');
+      const extension = path.extname(fileName) || '.jpg';
+      const safeFileName = 'file_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + extension;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('testimonials')
+        .upload(safeFileName, buffer, {
+          contentType: mimeType,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('Supabase upload error:', uploadError);
+        return res.status(500).json({ error: uploadError.message });
+      }
+
+      const { data: publicUrlData } = supabase.storage.from('testimonials').getPublicUrl(safeFileName);
+      return res.json({ url: publicUrlData.publicUrl });
     }
 
     // 404 fallback

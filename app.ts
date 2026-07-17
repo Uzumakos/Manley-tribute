@@ -707,17 +707,40 @@ app.post('/api/upload', async (req, res) => {
     return res.status(400).json({ error: 'Format base64 invalide / Fòma pa valid' });
   }
 
+  const mimeType = matches[1];
   const extension = path.extname(fileName) || '.jpg';
   const safeFileName = 'file_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + extension;
   const buffer = Buffer.from(matches[2], 'base64');
 
-  try {
-    const filePath = path.join(UPLOADS_DIR, safeFileName);
-    await fs.writeFile(filePath, buffer);
-    res.json({ url: `/uploads/${safeFileName}` });
-  } catch (err) {
-    console.error('File write failed:', err);
-    res.status(500).json({ error: 'Échec de l\'écriture du fichier / Fichye pa sove' });
+  if (useSupabase && supabase) {
+    try {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('testimonials')
+        .upload(safeFileName, buffer, {
+          contentType: mimeType,
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Supabase upload failed:', uploadError);
+        return res.status(500).json({ error: uploadError.message });
+      }
+
+      const { data: publicUrlData } = supabase.storage.from('testimonials').getPublicUrl(safeFileName);
+      return res.json({ url: publicUrlData.publicUrl });
+    } catch (err: any) {
+      console.error('Supabase upload exception:', err);
+      return res.status(500).json({ error: err?.message || 'Upload error' });
+    }
+  } else {
+    try {
+      const filePath = path.join(UPLOADS_DIR, safeFileName);
+      await fs.writeFile(filePath, buffer);
+      res.json({ url: `/uploads/${safeFileName}` });
+    } catch (err) {
+      console.error('File write failed:', err);
+      res.status(500).json({ error: 'Échec de l\'écriture du fichier / Fichye pa sove' });
+    }
   }
 });
 
